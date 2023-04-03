@@ -1,9 +1,18 @@
 // Во многих фреймфорках или библиотеках - методы для работы с OAuth2 уже готовые и не нужно будет их писать вручную
 // В этом проекте мы все делаем вручную, чтобы вы лучше поняли весь алгоритм действий
 
+// константы для использования во всем файле js
+const CLIENT_ID = "todoapp-client"; // название должен совпадать c клиентом из KeyCloak
+const SCOPE = "openid"; // какие данные хотите получить помимо access token (refresh token, id token) - можно через пробел указывать неск значений
+const RESPONSE_TYPE_CODE = "code"; // для получения authorization code
 
 // ALG - используются как параметры в разных методах шифрования, где-то с тире, где-то без тире
 const SHA_256 = "SHA-256"
+const S256 = "S256";
+
+// !! в каждой версии KeyCloak могут меняться URI - поэтому нужно сверяться с документацией
+const KEYCLOAK_URI = "https://localhost:8443/realms/todoapp-realm/protocol/openid-connect"; // общий URI KeyCloak
+const AUTH_CODE_REDIRECT_URI = "https://localhost:8080/redirect"; // куда auth server будет отправлять auth code
 
 
 // запускаем цикл действий для grant type = PKCE (Proof Key for Code Exchange), который хорошо подходит для JS приложений в браузере
@@ -22,10 +31,10 @@ function initValues() {
     console.log("codeVerifier = " + codeVerifier);
 
     // реактивный код - реакция не выполнения асинхронной функции
+    // асинхронный вызов - т.к. функция хеширования возвращает объект Promise, на который нужно подписываться (принцип реактивного кода)
     generateCodeChallenge(codeVerifier).then(codeChallenge => {
-
-        console.log("codeChallenge = " + codeChallenge);
-
+        // console.log("codeChallenge = " + codeChallenge);
+        requestAuthCode(state, codeChallenge) // запрашиваем auth code, т.к. все параметры сформировали и можем отправлять запрос
     });
 
 }
@@ -79,4 +88,24 @@ async function generateCodeChallenge(codeVerifier) {
 
     return base64urlencode(Array.from(new Uint8Array(digest)));  // Base64 формат на основе хеш-функции, которая применятся на codeVerifier
 
+}
+
+
+// запрос в auth server на получение auth code (который потом будем менять на access token и другие токены)
+function requestAuthCode(state, codeChallenge) {
+
+    // в каждой версии KeyCloak может изменяться URL - поэтому нужно сверяться с документацией
+    var authUrl = KEYCLOAK_URI + "/auth";
+
+    authUrl += "?response_type=" + RESPONSE_TYPE_CODE; // указываем auth server, что хотим получить auth code
+    authUrl += "&client_id=" + CLIENT_ID; // берем из auth server
+    authUrl += "&state=" + state; // auth server сохранит это значение себе и отправит в след. запросе (вместе с access token) и клиент сможет убедиться, что ответ пришел именно на его запрос
+    authUrl += "&scope=" + SCOPE; // какие данные хотите получить от auth server, помимо access token
+    authUrl += "&code_challenge=" + codeChallenge; // чтобы auth server убедился - запрос пришел именно то того пользователя, кто авторизовался ранее и получил auth code
+    authUrl += "&code_challenge_method=" + S256; // функция применяется к code_verifier, которые auth server получил в прошлом запросе - затем он сравнит результат с переданным code_challenge
+    authUrl += "&redirect_uri=" + AUTH_CODE_REDIRECT_URI; // куда auth server будет отправлять ответ
+
+    // открываем окно для авторизации
+    // если сделаете размер меньше, будет мобильная версия (KeyCloak автоматически изменит стиль окна)
+    window.open(authUrl, 'auth window', 'width=800,height=600,left=350,top=200');
 }
