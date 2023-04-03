@@ -2,7 +2,7 @@
 // В этом проекте мы все делаем вручную, чтобы вы лучше поняли весь алгоритм действий
 
 // константы для использования во всем файле js
-const CLIENT_ID = "todoapp-client"; // название должен совпадать c клиентом из KeyCloak
+const CLIENT_ID = "grobikon-client"; // название должен совпадать c клиентом из KeyCloak
 const SCOPE = "openid"; // какие данные хотите получить помимо access token (refresh token, id token) - можно через пробел указывать неск значений
 const RESPONSE_TYPE_CODE = "code"; // для получения authorization code
 
@@ -11,8 +11,8 @@ const SHA_256 = "SHA-256"
 const S256 = "S256";
 
 // !! в каждой версии KeyCloak могут меняться URI - поэтому нужно сверяться с документацией
-const KEYCLOAK_URI = "https://localhost:8443/realms/todoapp-realm/protocol/openid-connect"; // общий URI KeyCloak
-const AUTH_CODE_REDIRECT_URI = "https://localhost:8080/redirect"; // куда auth server будет отправлять auth code
+const KEYCLOAK_URI = "https://localhost:8443/realms/grobikon-realm/protocol/openid-connect"; // общий URI KeyCloak
+const AUTH_CODE_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять auth code
 
 
 // запускаем цикл действий для grant type = PKCE (Proof Key for Code Exchange), который хорошо подходит для JS приложений в браузере
