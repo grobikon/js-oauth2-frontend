@@ -155,5 +155,31 @@ function accessTokenResponse(data, status, jqXHR) { // эти параметры
 
     console.log("access_token = " + accessToken);
 
+    // получить данные из Resource Server, добавив в запрос access token
+    getDataFromResourceServer(accessToken);
+}
 
+
+// получить данные из Resource Server, добавив в запрос access token
+function getDataFromResourceServer(accessToken) {
+
+    // ajax запрос (параллельный вызов)
+    $.ajax({
+        beforeSend: function (request) { // обязательные заголовки
+            request.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+            request.setRequestHeader("Authorization", "Bearer " + accessToken); // задачем Bearer c access token
+        },
+        type: "GET", // тип запроса (обязательно должен быть get)
+        url: RESOURCE_SERVER_URI+"/admin]/data", // адрес, куда отправляем запрос
+        success: resourceServerResponse, // метод для выполнения, если запрос сработает успешно (callback)
+        dataType: "text" // в каком формате ожидаем ответ от auth server (в нашем случае это обычный текст - для упрощения, но чаще всего это JSON)
+    });
+}
+
+// обработка ответа от resource server (callback)
+function resourceServerResponse(data, status, jqXHR) { // эти параметры передаются автоматически
+
+    // данные можем отображать на странице - все зависит уже от frontend приложения
+    document.getElementById("userdata").innerHTML = data;
+    console.log("resource server data = " + data);
 }
