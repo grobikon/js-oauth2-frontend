@@ -171,7 +171,7 @@ function getDataFromResourceServer(accessToken) {
             request.setRequestHeader("Authorization", "Bearer " + accessToken); // задачем Bearer c access token
         },
         type: "GET", // тип запроса (обязательно должен быть get)
-        url: RESOURCE_SERVER_URI+"/admin]/data", // адрес, куда отправляем запрос
+        url: RESOURCE_SERVER_URI+"/user/data", // адрес, куда отправляем запрос
         success: resourceServerResponse, // метод для выполнения, если запрос сработает успешно (callback)
         dataType: "text" // в каком формате ожидаем ответ от auth server (в нашем случае это обычный текст - для упрощения, но чаще всего это JSON)
     });
