@@ -17,6 +17,7 @@ const AUTH_CODE_REDIRECT_URI = "https://localhost:8081/redirect"; // куда au
 const ACCESS_TOKEN_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять access token и другие токены
 const RESOURCE_SERVER_URI = "https://localhost:8901"; // где находится API Resource Server
 
+var accessToken = ""; // значение сбросится, если обновить веб страницу
 
 // запускаем цикл действий для grant type = PKCE (Proof Key for Code Exchange), который хорошо подходит для JS приложений в браузере
 // https://www.rfc-editor.org/rfc/rfc7636
@@ -152,19 +153,20 @@ function requestTokens(stateFromAuthServer, authCode) { // idea может по�
 // получить access token
 function accessTokenResponse(data, status, jqXHR) { // эти параметры передаются автоматически, data будет в формате JSON
 
-    var accessToken = data["access_token"];
+    // сохраняем в глоб. переменную
+    accessToken = data["access_token"];
 
     console.log("access_token = " + accessToken);
 
     // получить данные из Resource Server, добавив в запрос access token
-    getDataFromResourceServer(accessToken);
+    //getDataFromResourceServer(accessToken);
 }
 
 
 // получить данные из Resource Server, добавив в запрос access token
-function getDataFromResourceServer(accessToken) {
+function getDataFromResourceServer() {
 
-    // ajax запрос (параллельный вызов)
+    // ajax запрос (параллельный вызов - без полного обновления страницы)
     $.ajax({
         beforeSend: function (request) { // обязательные заголовки
             request.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
