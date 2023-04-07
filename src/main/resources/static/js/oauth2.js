@@ -15,6 +15,7 @@ const S256 = "S256";
 const KEYCLOAK_URI = "https://localhost:8443/realms/grobikon-realm/protocol/openid-connect"; // общий URI KeyCloak
 const AUTH_CODE_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять auth code
 const ACCESS_TOKEN_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять access token и другие токены
+const RESOURCE_SERVER_URI = "https://localhost:8901"; // где находится API Resource Server
 
 
 // запускаем цикл действий для grant type = PKCE (Proof Key for Code Exchange), который хорошо подходит для JS приложений в браузере
