@@ -175,6 +175,7 @@ function getDataFromResourceServer() {
         type: "GET", // тип запроса (обязательно должен быть get)
         url: RESOURCE_SERVER_URI+"/user/data", // адрес, куда отправляем запрос
         success: resourceServerResponse, // метод для выполнения, если запрос сработает успешно (callback)
+        error: resourceServerError, // если запрос завершился ошибкой, вызываем другую функцию
         dataType: "text" // в каком формате ожидаем ответ от auth server (в нашем случае это обычный текст - для упрощения, но чаще всего это JSON)
     });
 }
@@ -185,4 +186,24 @@ function resourceServerResponse(data, status, jqXHR) { // эти парамет�
     // данные можем отображать на странице - все зависит уже от frontend приложения
     document.getElementById("userdata").innerHTML = data;
     console.log("resource server data = " + data);
+}
+
+// обработка ошибки от resource server (callback)
+function resourceServerError(request, status, error){
+
+    // сам json
+    var json = JSON.parse(request.responseText); // JSON.parse преобразовывает из текста в объект JSON
+
+    // можно получить из json любое значение
+    var errorType = json["type"];
+
+    console.log(errorType);
+
+    // если ошибка аутентификации
+    if (errorType && (errorType === 'OAuth2AuthenticationException' || errorType === 'InvalidBearerTokenException')) {
+        initAccessToken(); // минус этого решения - нужно будет заново вводить логин-пароль
+    }else{
+        console.log("unknown error");
+    }
+
 }
