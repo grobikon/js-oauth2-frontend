@@ -13,6 +13,7 @@ const S256 = "S256";
 // !! в каждой версии KeyCloak могут меняться URI - поэтому нужно сверяться с документацией
 const KEYCLOAK_URI = "https://localhost:8443/realms/grobikon-realm/protocol/openid-connect"; // общий URI KeyCloak
 const AUTH_CODE_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять auth code
+const ACCESS_TOKEN_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять access token и другие токены
 
 
 // запускаем цикл действий для grant type = PKCE (Proof Key for Code Exchange), который хорошо подходит для JS приложений в браузере
@@ -108,4 +109,50 @@ function requestAuthCode(state, codeChallenge) {
     // открываем окно для авторизации
     // если сделаете размер меньше, будет мобильная версия (KeyCloak автоматически изменит стиль окна)
     window.open(authUrl, 'auth window', 'width=800,height=600,left=350,top=200');
+}
+
+// получаем все токены из auth server (access token, refresh token, id token - зависит от настроек scope)
+function requestTokens(stateFromAuthServer, authCode) { // idea может показывать, что функция нидге не используется, но это не так, просто он не может определить вызов из другого window
+
+    var originalState = document.getElementById("originalState").innerHTML;
+    // console.log(authCode);
+
+    // убеждаемся, что это ответ именно на наш запрос, который отправляли ранее (для авторизации на auth server)
+    if (stateFromAuthServer === originalState) {
+
+        // передаем в auth server, чтобы он убедился, что мы - тот же клиент, который ранее делал запрос на получение auth code
+        var codeVerifier = document.getElementById("codeVerifier").innerHTML;
+
+        // набор параметров для правильного обращения к auth server
+        var data = {
+            "grant_type": GRANT_TYPE_AUTH_CODE, // уведомляес auth server, что у нас есть auth code и с помощью него хотим получить access token
+            "client_id": CLIENT_ID, // берем из KeyCloak
+            "code": authCode, // полученное ранее значение (после авторизации в auth server)
+            "code_verifier": codeVerifier,// передаем в auth server, чтобы он убедился, что мы - тот же клиент, который ранее делал запрос на получение auth code
+            "redirect_uri": ACCESS_TOKEN_REDIRECT_URI // куда auth server будет отправлять ответ
+        };
+
+        $.ajax({ // ajax запрос для параллельного вызова
+            beforeSend: function (request) { // обязательные заголовки
+                request.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+            },
+            type: "POST", // тип запроса обязательно должен быть POST
+            url: KEYCLOAK_URI + "/token", // адрес обращения
+            data: data, // параметры запроса
+            success: accessTokenResponse, // (callback) какой метод вызывать после выполнения запроса (туда будет передан результат)
+            dataType: "json" // в каком формате получем ответ от auth server
+        });
+    } else {
+        alert("Error state value");
+    }
+}
+
+// получить access token
+function accessTokenResponse(data, status, jqXHR) { // // эти параметры передаются автоматически, data будет в формате JSON
+
+    var accessToken = data["access_token"];
+
+    console.log("access_token = " + accessToken);
+
+
 }

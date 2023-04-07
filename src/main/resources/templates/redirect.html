@@ -17,10 +17,11 @@
     if (error) {
         window.alert("error = " + error + ", description = " + errorDescription);
     } else {
-        console.log("auth code = " + authCode);
+        // вызов функции будет производиться от лица родительского окна (там у нас сохранен originalState для сравнения с полученным от AuthServer)
+        window.opener.requestTokens(state, authCode); // если подчеркивает ошибку - это норм, т.к. функция вызывается от имени окна
     }
 
-    // window.close();
+    window.close();
 
 </script>
 </body>
