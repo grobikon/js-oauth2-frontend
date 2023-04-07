@@ -4,6 +4,7 @@
 // константы для использования во всем файле js
 const CLIENT_ID = "grobikon-client"; // название должен совпадать c клиентом из KeyCloak
 const SCOPE = "openid"; // какие данные хотите получить помимо access token (refresh token, id token) - можно через пробел указывать неск значений
+const GRANT_TYPE_AUTH_CODE = "authorization_code"; // для получения access token мы отправляем auth code
 const RESPONSE_TYPE_CODE = "code"; // для получения authorization code
 
 // ALG - используются как параметры в разных методах шифрования, где-то с тире, где-то без тире
@@ -148,7 +149,7 @@ function requestTokens(stateFromAuthServer, authCode) { // idea может по�
 }
 
 // получить access token
-function accessTokenResponse(data, status, jqXHR) { // // эти параметры передаются автоматически, data будет в формате JSON
+function accessTokenResponse(data, status, jqXHR) { // эти параметры передаются автоматически, data будет в формате JSON
 
     var accessToken = data["access_token"];
 
