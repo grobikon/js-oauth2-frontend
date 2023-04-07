@@ -2,10 +2,11 @@
 // В этом проекте мы все делаем вручную, чтобы вы лучше поняли весь алгоритм действий
 
 // константы для использования во всем файле js
-const CLIENT_ID = "grobikon-client"; // название должен совпадать c клиентом из KeyCloak
-const SCOPE = "openid"; // какие данные хотите получить помимо access token (refresh token, id token) - можно через пробел указывать неск значений
-const GRANT_TYPE_AUTH_CODE = "authorization_code"; // для получения access token мы отправляем auth code
-const RESPONSE_TYPE_CODE = "code"; // для получения authorization code
+const CLIENT_ID = "grobikon-client";                               // название должен совпадать c клиентом из KeyCloak
+const SCOPE = "openid";                                            // какие данные хотите получить помимо access token (refresh token, id token) - можно через пробел указывать неск значений
+const GRANT_TYPE_AUTH_CODE = "authorization_code";                 // для получения access token мы отправляем auth code
+const GRANT_TYPE_REFRESH_TOKEN = "refresh_token";                  // для обмена refresh token на новый access token
+const RESPONSE_TYPE_CODE = "code";                                 // для получения authorization code
 
 // ALG - используются как параметры в разных методах шифрования, где-то с тире, где-то без тире
 const SHA_256 = "SHA-256"
@@ -13,11 +14,14 @@ const S256 = "S256";
 
 // !! в каждой версии KeyCloak могут меняться URI - поэтому нужно сверяться с документацией
 const KEYCLOAK_URI = "https://localhost:8443/realms/grobikon-realm/protocol/openid-connect"; // общий URI KeyCloak
-const AUTH_CODE_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять auth code
-const ACCESS_TOKEN_REDIRECT_URI = "https://localhost:8081/redirect"; // куда auth server будет отправлять access token и другие токены
-const RESOURCE_SERVER_URI = "https://localhost:8901"; // где находится API Resource Server
+const AUTH_CODE_REDIRECT_URI = "https://localhost:8081/redirect";                            // куда auth server будет отправлять auth code
+const ACCESS_TOKEN_REDIRECT_URI = "https://localhost:8081/redirect";                         // куда auth server будет отправлять access token и другие токены
+const RESOURCE_SERVER_URI = "https://localhost:8901";                                        // где находится API Resource Server
 
 var accessToken = ""; // значение сбросится, если обновить веб страницу
+var refreshToken =""; // для получения нового access token без повторной авторизации в окне
+
+const REFRESH_TOKEN_KEY = "RT";
 
 // запускаем цикл действий для grant type = PKCE (Proof Key for Code Exchange), который хорошо подходит для JS приложений в браузере
 // https://www.rfc-editor.org/rfc/rfc7636
@@ -153,10 +157,15 @@ function requestTokens(stateFromAuthServer, authCode) { // idea может по�
 // получить access token
 function accessTokenResponse(data, status, jqXHR) { // эти параметры передаются автоматически, data будет в формате JSON
 
-    // сохраняем в глоб. переменную
+    // сохраняем в глоб. переменную (сбросится только после перезагрузки страницы)
     accessToken = data["access_token"];
+    refreshToken = data["refresh_token"];
 
     console.log("access_token = " + accessToken);
+    console.log("refresh_token = " + refreshToken);
+
+    // локальное хранилище браузера позволяет сохранить значение, чтобы исползовать даже после перезагрузки страницы
+    localStorage.setItem("RT", refreshToken);
 
     // получить данные из Resource Server, добавив в запрос access token
     //getDataFromResourceServer(accessToken);
@@ -199,11 +208,40 @@ function resourceServerError(request, status, error){
 
     console.log(errorType);
 
-    // если ошибка аутентификации
-    if (errorType && (errorType === 'OAuth2AuthenticationException' || errorType === 'InvalidBearerTokenException')) {
-        initAccessToken(); // минус этого решения - нужно будет заново вводить логин-пароль
-    }else{
-        console.log("unknown error");
-    }
+    // пытаемся сначала получить refresh token из localStorage
+    var refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
 
+    // если есть refresh token
+    if (refreshToken){
+        // получаем новый access token с помощью него (т.е.не запускаем полный цикл PKCE, где пользователю нужно вводить логин-пароль)
+        exchangeRefreshToAccessToken();
+
+    } else { // если нет refresh token - запускаем полный цикл PKCE с вводом логина-пароля
+        initAccessToken(); // минус этого решения - нужно будет заново вводить логин-пароль
+    }
+}
+
+// запрос на новый access token используя refresh token
+// в ответе будет как новый AT, так и новый RT
+function exchangeRefreshToAccessToken() {
+
+    console.log("new access token initiated");
+
+// набор параметров для правильного обращения к auth server
+    var data = {
+        "grant_type": GRANT_TYPE_REFRESH_TOKEN, // уведомляем auth server, что мы хотим получить новый access token, используя refresh token
+        "client_id": CLIENT_ID, // берем из KeyCloak
+        "refresh_token": refreshToken // текущий refresh token
+    };
+
+    $.ajax({ // ajax запрос для параллельного вызова
+        beforeSend: function (request) { // обязательные заголовки
+            request.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+        },
+        type: "POST", // тип запроса обязательно должен быть POST
+        url: KEYCLOAK_URI + "/token", // адрес обращения
+        data: data, // параметры запроса
+        success: accessTokenResponse, // (callback) какой метод вызывать после выполнения запроса (туда будет передан результат)
+        dataType: "json" // в каком формате получаем ответ от auth server
+    });
 }
